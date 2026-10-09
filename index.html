@@ -2,62 +2,57 @@
 <html lang="es">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Diseñador de Circuitos y Cálculos Eléctricos</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Diseñador Eléctrico Móvil</title>
     <style>
-        * { box-sizing: border-box; margin: 0; padding: 0; font-family: system-ui, -apple-system, sans-serif; }
-        body { display: flex; height: 100vh; overflow: hidden; background-color: #121212; color: #e0e0e0; }
+        * { box-sizing: border-box; margin: 0; padding: 0; font-family: system-ui, sans-serif; touch-action: none; /* Evita que la pantalla haga zoom al arrastrar */ }
+        body { display: flex; flex-direction: column; height: 100vh; background-color: #121212; color: #e0e0e0; overflow: hidden; }
         
-        /* Barra de Herramientas Superior */
-        .toolbar { position: absolute; top: 20px; left: 300px; display: flex; gap: 10px; z-index: 10; }
-        .btn-tool { background: #2a2a2a; color: white; border: 1px solid #444; padding: 10px 15px; border-radius: 6px; cursor: pointer; transition: 0.2s; font-weight: bold; }
-        .btn-tool.active { background: #4fc3f7; color: #000; border-color: #4fc3f7; }
-        .btn-tool:hover:not(.active) { background: #383838; }
-
-        /* Barra Lateral */
-        aside { width: 280px; background-color: #1e1e1e; border-right: 1px solid #333; display: flex; flex-direction: column; padding: 20px; gap: 20px; z-index: 5;}
-        h2 { font-size: 1.1rem; color: #4fc3f7; margin-bottom: 5px; border-bottom: 1px solid #333; padding-bottom: 5px;}
+        /* Panel Superior (Móvil) */
+        header { background-color: #1e1e1e; padding: 10px; border-bottom: 1px solid #333; height: 45vh; display: flex; flex-direction: column; gap: 10px; overflow-y: auto; }
+        h2 { font-size: 1rem; color: #4fc3f7; border-bottom: 1px solid #333; padding-bottom: 5px; margin-bottom: 5px; }
         
-        .component-list { display: flex; flex-direction: column; gap: 10px; }
-        .item-palette { background-color: #2a2a2a; border: 1px solid #444; padding: 12px; border-radius: 6px; cursor: grab; text-align: center; font-weight: 500; transition: background 0.2s; }
-        .item-palette:hover { background-color: #383838; border-color: #4fc3f7; }
+        .component-list { display: flex; flex-wrap: wrap; gap: 5px; }
+        .item-palette { flex: 1 1 48%; background-color: #2a2a2a; border: 2px solid #444; padding: 8px 5px; border-radius: 6px; font-size: 0.8rem; text-align: center; font-weight: bold; }
+        .item-palette.activo { border-color: #4fc3f7; background-color: #0d47a1; }
         
-        /* Panel de Propiedades */
-        .properties-panel { background-color: #252525; padding: 15px; border-radius: 6px; border: 1px solid #444; font-size: 0.9rem; display: flex; flex-direction: column; gap: 10px; overflow-y: auto;}
-        .properties-panel label { font-size: 0.8rem; color: #aaa; margin-bottom: -5px;}
-        .properties-panel input, .properties-panel select { background: #1a1a1a; border: 1px solid #555; color: #fff; padding: 8px; border-radius: 4px; width: 100%;}
-        .properties-panel input:focus, .properties-panel select:focus { outline: none; border-color: #4fc3f7; }
+        .properties-panel { background-color: #252525; padding: 10px; border-radius: 6px; border: 1px solid #444; font-size: 0.85rem; display: flex; flex-direction: column; gap: 8px; }
+        .properties-panel label { color: #aaa; font-size: 0.75rem; margin-bottom: -4px;}
+        .properties-panel input, .properties-panel select { background: #1a1a1a; border: 1px solid #555; color: #fff; padding: 8px; border-radius: 4px; width: 100%; font-size: 1rem;}
         
-        .result-box { margin-top: 10px; padding: 10px; background: #1a1a1a; border-radius: 4px; border-left: 4px solid #4fc3f7; }
+        .result-box { margin-top: 5px; padding: 8px; background: #111; border-radius: 4px; border-left: 4px solid #4fc3f7; }
         .result-box.alert { border-left-color: #ff5252; color: #ff5252; }
 
-        /* Lienzo */
+        /* Lienzo y Botones Flotantes */
         main { flex-grow: 1; position: relative; background-color: #181818; }
-        canvas { display: block; width: 100%; height: 100%; cursor: crosshair; }
+        canvas { display: block; width: 100%; height: 100%; }
+        
+        .toolbar { position: absolute; bottom: 15px; left: 50%; transform: translateX(-50%); display: flex; gap: 10px; z-index: 10; width: 90%; justify-content: center;}
+        .btn-tool { background: #2a2a2a; color: white; border: 1px solid #444; padding: 12px; border-radius: 8px; font-weight: bold; flex: 1; font-size: 0.9rem;}
+        .btn-tool.active { background: #4fc3f7; color: #000; border-color: #4fc3f7; }
     </style>
 </head>
 <body>
 
-    <aside>
-        <h2>Componentes</h2>
+    <header>
+        <h2>1. Toca para agregar al plano</h2>
         <div class="component-list">
-            <div class="item-palette" draggable="true" data-type="tablero" data-name="Tablero Principal" data-power="0" data-volt="220">⚡ Tablero Principal</div>
-            <div class="item-palette" draggable="true" data-type="equipo" data-name="Tomacorriente" data-power="300" data-volt="120">🔌 Tomacorriente (300W)</div>
-            <div class="item-palette" draggable="true" data-type="equipo" data-name="Luminaria LED" data-power="100" data-volt="120">💡 Luminaria (100W)</div>
-            <div class="item-palette" draggable="true" data-type="equipo" data-name="Bomba de Agua" data-power="1100" data-volt="220">⚙️ Bomba de Agua (1.5 HP)</div>
-            <div class="item-palette" draggable="true" data-type="equipo" data-name="Aire Acondicionado" data-power="2200" data-volt="220">❄️ Aire Acond. (2200W)</div>
+            <div class="item-palette" onclick="prepararColocacion(this, 'tablero', 'Tablero', 0, 220)">⚡ Tablero</div>
+            <div class="item-palette" onclick="prepararColocacion(this, 'equipo', 'Toma', 300, 120)">🔌 Toma (300W)</div>
+            <div class="item-palette" onclick="prepararColocacion(this, 'equipo', 'Luz LED', 100, 120)">💡 Luz (100W)</div>
+            <div class="item-palette" onclick="prepararColocacion(this, 'equipo', 'Bomba', 1500, 220)">⚙️ Bomba 1.5HP</div>
         </div>
 
-        <h2>Propiedades</h2>
+        <h2>2. Propiedades y Cálculos</h2>
         <div class="properties-panel" id="propertiesPanel">
-            <p style="color: #888; text-align: center;">Selecciona un equipo o el centro de un cable.</p>
+            <p style="color: #888; text-align: center;">Toca un equipo o un cable en el plano.</p>
         </div>
-    </aside>
+    </header>
 
     <main>
         <div class="toolbar">
-            <button class="btn-tool active" id="btnCursor" onclick="setModo('cursor')">👆 Mover / Seleccionar</button>
-            <button class="btn-tool" id="btnCable" onclick="setModo('cable')">⚡ Trazar Cable</button>
+            <button class="btn-tool active" id="btnCursor" onclick="setModo('cursor')">👆 Mover</button>
+            <button class="btn-tool" id="btnCable" onclick="setModo('cable')">⚡ Cable</button>
         </div>
         <canvas id="circuitCanvas"></canvas>
     </main>
@@ -67,33 +62,21 @@
         const ctx = canvas.getContext('2d');
         const propertiesPanel = document.getElementById('propertiesPanel');
 
-        // Escala física: 40 pixeles = 1 Metro
-        const PIXELES_POR_METRO = 40; 
+        const PIXELES_POR_METRO = 25; // Escala ajustada para móviles
         const GRID_SIZE = 20;
-        
-        // Tabla de Resistencias de Cobre (Ohmios por Kilómetro) - Valores Típicos aproximados
-        const RESISTENCIA_AWG = {
-            "14": 8.28,
-            "12": 5.21,
-            "10": 3.27,
-            "8": 2.06,
-            "6": 1.29,
-            "4": 0.81
-        };
+        const RESISTENCIA_AWG = { "14": 8.28, "12": 5.21, "10": 3.27, "8": 2.06, "6": 1.29 };
 
-        // Estado Global
-        let modoActual = 'cursor'; // 'cursor' | 'cable'
+        let modoActual = 'cursor'; 
         let elementosCanvas = [];
         let cablesCanvas = [];
-        let elementoSeleccionado = null; // Puede ser un equipo o un cable
-        let arrastrandoPalette = null;
+        let elementoSeleccionado = null; 
         
-        // Variables de interacción
+        // Variables para táctil
+        let itemParaColocar = null;
         let isDragging = false;
         let offsetDragX = 0, offsetDragY = 0;
-        let cableTemp = null; // { origen: el, mouseX, mouseY }
+        let equipoOrigenCable = null;
 
-        // Redimensionar Canvas
         function resizeCanvas() {
             canvas.width = canvas.parentElement.clientWidth;
             canvas.height = canvas.parentElement.clientHeight;
@@ -105,202 +88,139 @@
             modoActual = modo;
             document.getElementById('btnCursor').classList.toggle('active', modo === 'cursor');
             document.getElementById('btnCable').classList.toggle('active', modo === 'cable');
-            seleccionar(null);
+            equipoOrigenCable = null;
+            itemParaColocar = null;
+            document.querySelectorAll('.item-palette').forEach(btn => btn.classList.remove('activo'));
             drawEscena();
+        }
+
+        function prepararColocacion(btnElement, type, name, power, volt) {
+            setModo('cursor');
+            document.querySelectorAll('.item-palette').forEach(b => b.classList.remove('activo'));
+            btnElement.classList.add('activo');
+            itemParaColocar = { type, name, power, volt };
         }
 
         // --- SISTEMA DE DIBUJO ---
         function drawEscena() {
             ctx.clearRect(0, 0, canvas.width, canvas.height);
             
-            // 1. Dibujar Cuadrícula
+            // Cuadrícula
             ctx.strokeStyle = '#222';
             ctx.lineWidth = 1;
-            for (let x = 0; x < canvas.width; x += GRID_SIZE) {
-                ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, canvas.height); ctx.stroke();
-            }
-            for (let y = 0; y < canvas.height; y += GRID_SIZE) {
-                ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(canvas.width, y); ctx.stroke();
-            }
+            for (let x = 0; x < canvas.width; x += GRID_SIZE) { ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, canvas.height); ctx.stroke(); }
+            for (let y = 0; y < canvas.height; y += GRID_SIZE) { ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(canvas.width, y); ctx.stroke(); }
 
-            // 2. Dibujar Cables
+            // Cables
             cablesCanvas.forEach(cable => {
-                const cx1 = cable.origen.x + cable.origen.w / 2;
-                const cy1 = cable.origen.y + cable.origen.h / 2;
-                const cx2 = cable.destino.x + cable.destino.w / 2;
-                const cy2 = cable.destino.y + cable.destino.h / 2;
+                const cx1 = cable.origen.x + cable.origen.w / 2; const cy1 = cable.origen.y + cable.origen.h / 2;
+                const cx2 = cable.destino.x + cable.destino.w / 2; const cy2 = cable.destino.y + cable.destino.h / 2;
 
-                ctx.beginPath();
-                ctx.moveTo(cx1, cy1);
-                ctx.lineTo(cx2, cy2);
+                ctx.beginPath(); ctx.moveTo(cx1, cy1); ctx.lineTo(cx2, cy2);
                 ctx.strokeStyle = (elementoSeleccionado === cable) ? '#ffeb3b' : '#4CAF50';
                 ctx.lineWidth = (elementoSeleccionado === cable) ? 4 : 2;
                 ctx.stroke();
 
-                // Dibujar un "nodo" en el centro del cable para poder seleccionarlo
-                const midX = (cx1 + cx2) / 2;
-                const midY = (cy1 + cy2) / 2;
-                ctx.beginPath();
-                ctx.arc(midX, midY, 6, 0, Math.PI * 2);
+                // Nodo central
+                const midX = (cx1 + cx2) / 2; const midY = (cy1 + cy2) / 2;
+                ctx.beginPath(); ctx.arc(midX, midY, 8, 0, Math.PI * 2);
                 ctx.fillStyle = (elementoSeleccionado === cable) ? '#ffeb3b' : '#4CAF50';
                 ctx.fill();
             });
 
-            // 3. Dibujar Cable Temporal (si estamos trazando uno)
-            if (cableTemp) {
-                const cx1 = cableTemp.origen.x + cableTemp.origen.w / 2;
-                const cy1 = cableTemp.origen.y + cableTemp.origen.h / 2;
-                ctx.beginPath();
-                ctx.moveTo(cx1, cy1);
-                ctx.lineTo(cableTemp.mouseX, cableTemp.mouseY);
-                ctx.strokeStyle = '#ff9800';
-                ctx.lineWidth = 2;
-                ctx.setLineDash([5, 5]);
-                ctx.stroke();
-                ctx.setLineDash([]); // reset
+            // Equipo origen cable (parpadeo visual)
+            if (equipoOrigenCable) {
+                ctx.strokeStyle = '#ff9800'; ctx.lineWidth = 4; ctx.setLineDash([5, 5]);
+                ctx.strokeRect(equipoOrigenCable.x - 2, equipoOrigenCable.y - 2, equipoOrigenCable.w + 4, equipoOrigenCable.h + 4);
+                ctx.setLineDash([]);
             }
 
-            // 4. Dibujar Equipos
+            // Equipos
             elementosCanvas.forEach(el => {
                 ctx.fillStyle = (elementoSeleccionado === el) ? '#37474f' : '#2a2a2a';
                 ctx.strokeStyle = (elementoSeleccionado === el) ? '#ffc107' : (el.type === 'tablero' ? '#f44336' : '#4fc3f7');
                 ctx.lineWidth = 2;
+                ctx.fillRect(el.x, el.y, el.w, el.h); ctx.strokeRect(el.x, el.y, el.w, el.h);
 
-                ctx.fillRect(el.x, el.y, el.w, el.h);
-                ctx.strokeRect(el.x, el.y, el.w, el.h);
-
-                ctx.fillStyle = '#ffffff';
-                ctx.font = '12px sans-serif';
-                ctx.fillText(el.name, el.x + 8, el.y + 24);
-                
+                ctx.fillStyle = '#ffffff'; ctx.font = '12px sans-serif'; ctx.fillText(el.name, el.x + 5, el.y + 18);
                 if(el.type !== 'tablero') {
-                    ctx.fillStyle = '#aaa';
-                    ctx.font = '10px sans-serif';
-                    ctx.fillText(`${el.power}W | ${el.volt}V`, el.x + 8, el.y + 42);
+                    ctx.fillStyle = '#aaa'; ctx.font = '10px sans-serif'; ctx.fillText(`${el.power}W|${el.volt}V`, el.x + 5, el.y + 35);
                 }
             });
         }
 
-        // --- ARRASTRAR DESDE LA PALETA (Drag & Drop HTML5) ---
-        document.querySelectorAll('.item-palette').forEach(item => {
-            item.addEventListener('dragstart', (e) => {
-                arrastrandoPalette = {
-                    type: e.target.dataset.type,
-                    name: e.target.dataset.name,
-                    power: parseFloat(e.target.dataset.power),
-                    volt: parseFloat(e.target.dataset.volt)
-                };
-            });
-        });
-
-        canvas.addEventListener('dragover', (e) => e.preventDefault());
-        canvas.addEventListener('drop', (e) => {
-            e.preventDefault();
-            if (!arrastrandoPalette) return;
-
-            const rect = canvas.getBoundingClientRect();
-            const x = Math.floor((e.clientX - rect.left) / GRID_SIZE) * GRID_SIZE;
-            const y = Math.floor((e.clientY - rect.top) / GRID_SIZE) * GRID_SIZE;
-
-            const nuevo = {
-                id: 'obj_' + Date.now(),
-                tipoObjeto: 'equipo',
-                type: arrastrandoPalette.type,
-                name: arrastrandoPalette.name,
-                power: arrastrandoPalette.power,
-                volt: arrastrandoPalette.volt,
-                x: x, y: y, w: 120, h: 50
-            };
-
-            elementosCanvas.push(nuevo);
-            setModo('cursor');
-            seleccionar(nuevo);
-            arrastrandoPalette = null;
-        });
-
-        // --- EVENTOS DEL RATÓN EN EL CANVAS ---
-        canvas.addEventListener('mousedown', (e) => {
+        // --- EVENTOS TÁCTILES UNIFICADOS (Sirve para dedo y ratón) ---
+        canvas.addEventListener('pointerdown', (e) => {
             const rect = canvas.getBoundingClientRect();
             const mx = e.clientX - rect.left;
             const my = e.clientY - rect.top;
 
-            // Buscar si clicamos un equipo
-            const equipoClicado = elementosCanvas.slice().reverse().find(el => 
+            // 1. ¿Queremos colocar un equipo nuevo?
+            if (itemParaColocar) {
+                const x = Math.floor(mx / GRID_SIZE) * GRID_SIZE;
+                const y = Math.floor(my / GRID_SIZE) * GRID_SIZE;
+                
+                const nuevo = { id: Date.now(), tipoObjeto: 'equipo', ...itemParaColocar, x: x, y: y, w: 90, h: 45 };
+                elementosCanvas.push(nuevo);
+                
+                // Resetear estado
+                itemParaColocar = null;
+                document.querySelectorAll('.item-palette').forEach(b => b.classList.remove('activo'));
+                seleccionar(nuevo);
+                return;
+            }
+
+            // 2. Buscar si tocamos un equipo
+            const equipoTocado = elementosCanvas.slice().reverse().find(el => 
                 mx >= el.x && mx <= el.x + el.w && my >= el.y && my <= el.y + el.h
             );
 
             if (modoActual === 'cursor') {
-                if (equipoClicado) {
-                    seleccionar(equipoClicado);
+                if (equipoTocado) {
+                    seleccionar(equipoTocado);
                     isDragging = true;
-                    offsetDragX = mx - equipoClicado.x;
-                    offsetDragY = my - equipoClicado.y;
+                    offsetDragX = mx - equipoTocado.x;
+                    offsetDragY = my - equipoTocado.y;
                 } else {
-                    // Buscar si clicamos el centro de un cable
-                    const cableClicado = cablesCanvas.find(c => {
+                    // Buscar si tocamos un cable
+                    const cableTocado = cablesCanvas.find(c => {
                         const cx = (c.origen.x + c.origen.w/2 + c.destino.x + c.destino.w/2) / 2;
                         const cy = (c.origen.y + c.origen.h/2 + c.destino.y + c.destino.h/2) / 2;
-                        return Math.hypot(cx - mx, cy - my) < 10; // 10px de margen de error
+                        return Math.hypot(cx - mx, cy - my) < 20; // Zona táctil más grande para dedos
                     });
-                    seleccionar(cableClicado || null);
+                    seleccionar(cableTocado || null);
                 }
             } 
             else if (modoActual === 'cable') {
-                if (equipoClicado) {
-                    cableTemp = { origen: equipoClicado, mouseX: mx, mouseY: my };
+                if (equipoTocado) {
+                    if (!equipoOrigenCable) {
+                        equipoOrigenCable = equipoTocado; // Primer toque
+                    } else if (equipoOrigenCable !== equipoTocado) {
+                        // Segundo toque: Crear cable
+                        cablesCanvas.push({ id: Date.now(), tipoObjeto: 'cable', origen: equipoOrigenCable, destino: equipoTocado, awg: "12", longitudManual: null });
+                        equipoOrigenCable = null;
+                        setModo('cursor');
+                    }
                 }
+                drawEscena();
             }
         });
 
-        canvas.addEventListener('mousemove', (e) => {
+        canvas.addEventListener('pointermove', (e) => {
+            if (!isDragging || !elementoSeleccionado || elementoSeleccionado.tipoObjeto !== 'equipo') return;
             const rect = canvas.getBoundingClientRect();
             const mx = e.clientX - rect.left;
             const my = e.clientY - rect.top;
 
-            if (modoActual === 'cursor' && isDragging && elementoSeleccionado && elementoSeleccionado.tipoObjeto === 'equipo') {
-                // Mover ajustando al Grid
-                elementoSeleccionado.x = Math.round((mx - offsetDragX) / GRID_SIZE) * GRID_SIZE;
-                elementoSeleccionado.y = Math.round((my - offsetDragY) / GRID_SIZE) * GRID_SIZE;
-                drawEscena();
-                if(elementoSeleccionado) actualizarPanelPropiedades(); // Refrescar longitudes en vivo
-            }
-            else if (modoActual === 'cable' && cableTemp) {
-                cableTemp.mouseX = mx;
-                cableTemp.mouseY = my;
-                drawEscena();
-            }
+            elementoSeleccionado.x = Math.round((mx - offsetDragX) / GRID_SIZE) * GRID_SIZE;
+            elementoSeleccionado.y = Math.round((my - offsetDragY) / GRID_SIZE) * GRID_SIZE;
+            drawEscena();
+            actualizarPanelPropiedades();
         });
 
-        window.addEventListener('mouseup', (e) => {
-            isDragging = false;
-            
-            if (modoActual === 'cable' && cableTemp) {
-                const rect = canvas.getBoundingClientRect();
-                const mx = e.clientX - rect.left;
-                const my = e.clientY - rect.top;
+        window.addEventListener('pointerup', () => { isDragging = false; });
 
-                // Ver donde soltamos el cable
-                const equipoDestino = elementosCanvas.slice().reverse().find(el => 
-                    mx >= el.x && mx <= el.x + el.w && my >= el.y && my <= el.y + el.h
-                );
-
-                if (equipoDestino && equipoDestino !== cableTemp.origen) {
-                    // Crear el cable final
-                    cablesCanvas.push({
-                        id: 'cab_' + Date.now(),
-                        tipoObjeto: 'cable',
-                        origen: cableTemp.origen,
-                        destino: equipoDestino,
-                        awg: "12", // Calibre por defecto
-                        longitudManual: null // Por si el usuario quiere sobreescribir la longitud visual
-                    });
-                }
-                cableTemp = null;
-                setModo('cursor');
-            }
-        });
-
-        // --- PANEL DE PROPIEDADES Y MOTOR ELÉCTRICO ---
+        // --- MOTOR DE CÁLCULOS ---
         function seleccionar(obj) {
             elementoSeleccionado = obj;
             actualizarPanelPropiedades();
@@ -309,36 +229,37 @@
 
         function actualizarPanelPropiedades() {
             const obj = elementoSeleccionado;
-            
             if (!obj) {
-                propertiesPanel.innerHTML = `<p style="color: #888; text-align: center;">Selecciona un equipo o el nodo de un cable.</p>`;
+                propertiesPanel.innerHTML = `<p style="color: #888; text-align: center;">Toca un equipo o el centro de un cable.</p>`;
                 return;
             }
 
             if (obj.tipoObjeto === 'equipo') {
                 const corriente = obj.volt > 0 ? (obj.power / obj.volt).toFixed(2) : 0;
                 propertiesPanel.innerHTML = `
-                    <label>Nombre del Equipo</label>
-                    <input type="text" id="propName" value="${obj.name}">
-                    
-                    ${obj.type !== 'tablero' ? `
-                    <label>Potencia (Watts)</label>
-                    <input type="number" id="propPower" value="${obj.power}">
-                    
-                    <label>Voltaje Operativo</label>
-                    <select id="propVolt">
-                        <option value="120" ${obj.volt === 120 ? 'selected' : ''}>120V (Fase-Neutro)</option>
-                        <option value="220" ${obj.volt === 220 ? 'selected' : ''}>220V (Fase-Fase)</option>
-                    </select>
-
-                    <div class="result-box">
-                        <strong>Corriente (I):</strong> ${corriente} Amp
+                    <div style="display:flex; gap:10px;">
+                        <div style="flex:1;">
+                            <label>Nombre</label>
+                            <input type="text" id="propName" value="${obj.name}">
+                        </div>
+                        ${obj.type !== 'tablero' ? `
+                        <div style="flex:1;">
+                            <label>Watts</label>
+                            <input type="number" id="propPower" value="${obj.power}">
+                        </div>
+                        <div style="flex:1;">
+                            <label>Volts</label>
+                            <select id="propVolt">
+                                <option value="120" ${obj.volt === 120 ? 'selected' : ''}>120V</option>
+                                <option value="220" ${obj.volt === 220 ? 'selected' : ''}>220V</option>
+                            </select>
+                        </div>
+                        ` : ''}
                     </div>
-                    ` : '<div class="result-box"><strong>Fuente de Poder Principal</strong></div>'}
-                    <button class="btn-tool" style="margin-top:10px; background:#f44336; border:none;" onclick="eliminarSeleccionado()">🗑️ Eliminar</button>
+                    ${obj.type !== 'tablero' ? `<div class="result-box"><strong>Corriente:</strong> ${corriente} Amp</div>` : ''}
+                    <button class="btn-tool" style="background:#f44336; border:none; margin-top:5px;" onclick="eliminarSeleccionado()">🗑️ Borrar Equipo</button>
                 `;
 
-                // Eventos de actualización
                 document.getElementById('propName').addEventListener('input', e => { obj.name = e.target.value; drawEscena(); });
                 if(obj.type !== 'tablero') {
                     document.getElementById('propPower').addEventListener('input', e => { obj.power = parseFloat(e.target.value) || 0; actualizarPanelPropiedades(); });
@@ -346,73 +267,55 @@
                 }
 
             } else if (obj.tipoObjeto === 'cable') {
-                // CÁLCULOS ELÉCTRICOS DEL CABLE
-                // 1. Calcular Longitud en metros (Distancia euclidiana entre centros)
                 const cx1 = obj.origen.x + obj.origen.w/2; const cy1 = obj.origen.y + obj.origen.h/2;
                 const cx2 = obj.destino.x + obj.destino.w/2; const cy2 = obj.destino.y + obj.destino.h/2;
                 const pixeles = Math.hypot(cx2 - cx1, cy2 - cy1);
-                const metrosCalculados = (pixeles / PIXELES_POR_METRO).toFixed(1);
-                const longitudReal = obj.longitudManual || metrosCalculados;
+                const metros = (pixeles / PIXELES_POR_METRO).toFixed(1);
+                const longitudReal = obj.longitudManual || metros;
 
-                // 2. Determinar Carga (Corriente) - Asumimos que el destino es la carga
                 const carga = obj.destino.type === 'tablero' ? obj.origen : obj.destino;
                 const corriente = carga.volt > 0 ? (carga.power / carga.volt) : 0;
-                
-                // 3. Fórmula Caída de Tensión (Monofásica/Bifásica simplificada: 2 * L * I * R / 1000)
-                const resistencia = RESISTENCIA_AWG[obj.awg];
-                const caidaVolts = (2 * longitudReal * corriente * resistencia) / 1000;
+                const caidaVolts = (2 * longitudReal * corriente * RESISTENCIA_AWG[obj.awg]) / 1000;
                 const caidaPorcentaje = carga.volt > 0 ? (caidaVolts / carga.volt) * 100 : 0;
 
-                const alerta = caidaPorcentaje > 3.0 ? 'alert' : '';
-                const msjAlerta = caidaPorcentaje > 3.0 ? '<br><small>⚠️ Excede el 3% normativo. Sube el calibre.</small>' : '';
-
                 propertiesPanel.innerHTML = `
-                    <label>Conexión</label>
-                    <div style="font-size:0.8rem; padding:8px; background:#111; border-radius:4px;">
-                        ${obj.origen.name} ➔ ${obj.destino.name}
+                    <div style="display:flex; gap:10px;">
+                        <div style="flex:1;">
+                            <label>Calibre (AWG)</label>
+                            <select id="propAwg">
+                                <option value="12" ${obj.awg === "12" ? 'selected' : ''}>12 AWG</option>
+                                <option value="10" ${obj.awg === "10" ? 'selected' : ''}>10 AWG</option>
+                                <option value="8" ${obj.awg === "8" ? 'selected' : ''}>8 AWG</option>
+                                <option value="6" ${obj.awg === "6" ? 'selected' : ''}>6 AWG</option>
+                            </select>
+                        </div>
+                        <div style="flex:1;">
+                            <label>Longitud (m)</label>
+                            <input type="number" id="propLongitud" value="${longitudReal}" placeholder="${metros}m">
+                        </div>
                     </div>
-
-                    <label>Calibre del Conductor (AWG)</label>
-                    <select id="propAwg">
-                        <option value="14" ${obj.awg === "14" ? 'selected' : ''}>14 AWG (15A Max)</option>
-                        <option value="12" ${obj.awg === "12" ? 'selected' : ''}>12 AWG (20A Max)</option>
-                        <option value="10" ${obj.awg === "10" ? 'selected' : ''}>10 AWG (30A Max)</option>
-                        <option value="8" ${obj.awg === "8" ? 'selected' : ''}>8 AWG (40A Max)</option>
-                        <option value="6" ${obj.awg === "6" ? 'selected' : ''}>6 AWG (55A Max)</option>
-                    </select>
-
-                    <label>Longitud (Metros) [Plano: ${metrosCalculados}m]</label>
-                    <input type="number" id="propLongitud" value="${longitudReal}" step="0.5" placeholder="Dejar vacío para auto">
-
-                    <div class="result-box ${alerta}">
-                        <strong>Carga:</strong> ${corriente.toFixed(2)} Amp<br>
-                        <strong>Caída de Tensión:</strong> ${caidaVolts.toFixed(2)} V<br>
-                        <strong>Porcentaje:</strong> ${caidaPorcentaje.toFixed(2)} % ${msjAlerta}
+                    <div class="result-box ${caidaPorcentaje > 3.0 ? 'alert' : ''}">
+                        Caída de Tensión: <strong>${caidaPorcentaje.toFixed(2)} %</strong> (${caidaVolts.toFixed(1)}V)
+                        ${caidaPorcentaje > 3.0 ? '<br><small>⚠️ Sube el calibre.</small>' : ''}
                     </div>
-                    <button class="btn-tool" style="margin-top:10px; background:#f44336; border:none;" onclick="eliminarSeleccionado()">🗑️ Eliminar Cable</button>
+                    <button class="btn-tool" style="background:#f44336; border:none; margin-top:5px;" onclick="eliminarSeleccionado()">🗑️ Borrar Cable</button>
                 `;
 
                 document.getElementById('propAwg').addEventListener('change', e => { obj.awg = e.target.value; actualizarPanelPropiedades(); });
-                document.getElementById('propLongitud').addEventListener('input', e => { 
-                    obj.longitudManual = parseFloat(e.target.value) || null; 
-                    actualizarPanelPropiedades(); 
-                });
+                document.getElementById('propLongitud').addEventListener('input', e => { obj.longitudManual = parseFloat(e.target.value) || null; actualizarPanelPropiedades(); });
             }
         }
 
         function eliminarSeleccionado() {
             if(!elementoSeleccionado) return;
             if(elementoSeleccionado.tipoObjeto === 'equipo') {
-                // Eliminar equipo y cables conectados a él
                 elementosCanvas = elementosCanvas.filter(e => e !== elementoSeleccionado);
                 cablesCanvas = cablesCanvas.filter(c => c.origen !== elementoSeleccionado && c.destino !== elementoSeleccionado);
-            } else {
-                cablesCanvas = cablesCanvas.filter(c => c !== elementoSeleccionado);
-            }
+            } else { cablesCanvas = cablesCanvas.filter(c => c !== elementoSeleccionado); }
             seleccionar(null);
         }
 
-        resizeCanvas();
+        setTimeout(resizeCanvas, 100); // Dar tiempo a que el navegador ajuste la pantalla
     </script>
 </body>
 </html>
