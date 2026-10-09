@@ -1,0 +1,298 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Diseñador de Circuitos Eléctricos Residenciales</title>
+    <style>
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: system-ui, -apple-system, sans-serif;
+        }
+        body {
+            display: flex;
+            height: 100vh;
+            overflow: hidden;
+            background-color: #121212;
+            color: #e0e0e0;
+        }
+        /* Barra Lateral de Herramientas */
+        aside {
+            width: 280px;
+            background-color: #1e1e1e;
+            border-right: 1px solid #333;
+            display: flex;
+            flex-direction: column;
+            padding: 20px;
+            gap: 20px;
+        }
+        h2 { font-size: 1.1rem; color: #4fc3f7; }
+        .component-list {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+        .item-palette {
+            background-color: #2a2a2a;
+            border: 1px solid #444;
+            padding: 12px;
+            border-radius: 6px;
+            cursor: grab;
+            text-align: center;
+            font-weight: 500;
+            transition: background 0.2s;
+        }
+        .item-palette:hover {
+            background-color: #383838;
+            border-color: #4fc3f7;
+        }
+        /* Panel de Propiedades y Cálculos */
+        .properties-panel {
+            background-color: #252525;
+            padding: 12px;
+            border-radius: 6px;
+            border: 1px solid #444;
+            font-size: 0.9rem;
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+        .properties-panel input, .properties-panel select {
+            background: #1a1a1a;
+            border: 1px solid #555;
+            color: #fff;
+            padding: 6px;
+            border-radius: 4px;
+        }
+        /* Área de Trabajo (Canvas) */
+        main {
+            flex-grow: 1;
+            position: relative;
+            background-color: #181818;
+        }
+        canvas {
+            display: block;
+            width: 100%;
+            height: 100%;
+        }
+    </style>
+</head>
+<body>
+
+    <aside>
+        <h2>Componentes Eléctricos</h2>
+        <div class="component-list">
+            <div class="item-palette" draggable="true" data-type="tablero" data-name="Tablero Principal" data-power="0" data-volt="220">⚡ Tablero Principal</div>
+            <div class="item-palette" draggable="true" data-type="toma" data-name="Tomacorriente Doble" data-power="300" data-volt="120">🔌 Tomacorriente (300W)</div>
+            <div class="item-palette" draggable="true" data-type="iluminacion" data-name="Luminaria LED" data-power="100" data-volt="120">💡 Luminaria (100W)</div>
+            <div class="item-palette" draggable="true" data-type="bomba" data-name="Bomba de Agua" data-power="1500" data-volt="220">⚙️ Bomba de Agua (1.5 HP)</div>
+        </div>
+
+        <h2>Propiedades del Equipo</h2>
+        <div class="properties-panel" id="propertiesPanel">
+            <p style="color: #888; text-align: center;">Selecciona un elemento en el plano</p>
+        </div>
+    </aside>
+
+    <main>
+        <canvas id="circuitCanvas"></canvas>
+    </main>
+
+    <script>
+        const canvas = document.getElementById('circuitCanvas');
+        const ctx = canvas.getContext('2d');
+        const propertiesPanel = document.getElementById('propertiesPanel');
+
+        // Ajustar el canvas al tamaño de la pantalla
+        function resizeCanvas() {
+            canvas.width = canvas.parentElement.clientWidth;
+            canvas.height = canvas.parentElement.clientHeight;
+            drawGrid();
+        }
+        window.addEventListener('resize', resizeCanvas);
+
+        // Estructuras de datos
+        let elementosCanvas = [];
+        let elementoSeleccionado = null;
+        let arrastrandoPalette = null;
+        let offsetDragX = 0;
+        let offsetDragY = 0;
+        let isDraggingCanvasItem = false;
+
+        const GRID_SIZE = 20;
+
+        function drawGrid() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            ctx.strokeStyle = '#222222';
+            ctx.lineWidth = 1;
+
+            for (let x = 0; x < canvas.width; x += GRID_SIZE) {
+                ctx.beginPath();
+                ctx.moveTo(x, 0);
+                ctx.lineTo(x, canvas.height);
+                ctx.stroke();
+            }
+            for (let y = 0; y < canvas.height; y += GRID_SIZE) {
+                ctx.beginPath();
+                ctx.moveTo(0, y);
+                ctx.lineTo(canvas.width, y);
+                ctx.stroke();
+            }
+
+            // Dibujar elementos colocados
+            elementosCanvas.forEach(el => {
+                ctx.fillStyle = el === elementoSeleccionado ? '#ff9800' : '#2a2a2a';
+                ctx.strokeStyle = el === elementoSeleccionado ? '#ffc107' : '#4fc3f7';
+                ctx.lineWidth = 2;
+
+                ctx.fillRect(el.x, el.y, el.w, el.h);
+                ctx.strokeRect(el.x, el.y, el.w, el.h);
+
+                // Texto del componente
+                ctx.fillStyle = '#ffffff';
+                ctx.font = '12px sans-serif';
+                ctx.fillText(el.name, el.x + 8, el.y + 24);
+                ctx.fillStyle = '#aaa';
+                ctx.font = '10px sans-serif';
+                ctx.fillText(`${el.power}W | ${el.volt}V`, el.x + 8, el.y + 40);
+            });
+        }
+
+        // --- GESTIÓN DE ARRASTRE DESDE LA PALETA ---
+        document.querySelectorAll('.item-palette').forEach(item => {
+            item.addEventListener('dragstart', (e) => {
+                arrastrandoPalette = {
+                    type: e.target.dataset.type,
+                    name: e.target.dataset.name,
+                    power: parseFloat(e.target.dataset.power),
+                    volt: parseFloat(e.target.dataset.volt)
+                };
+            });
+        });
+
+        canvas.addEventListener('dragover', (e) => e.preventDefault());
+
+        canvas.addEventListener('drop', (e) => {
+            e.preventDefault();
+            if (!arrastrandoPalette) return;
+
+            const rect = canvas.getBoundingClientRect();
+            const x = Math.floor((e.clientX - rect.left) / GRID_SIZE) * GRID_SIZE;
+            const y = Math.floor((e.clientY - rect.top) / GRID_SIZE) * GRID_SIZE;
+
+            const nuevoElemento = {
+                id: Date.now(),
+                type: arrastrandoPalette.type,
+                name: arrastrandoPalette.name,
+                power: arrastrandoPalette.power,
+                volt: arrastrandoPalette.volt,
+                x: x,
+                y: y,
+                w: 120,
+                h: 60
+            };
+
+            elementosCanvas.push(nuevoElemento);
+            seleccionarElemento(nuevoElemento);
+            arrastrandoPalette = null;
+            drawGrid();
+        });
+
+        // --- GESTIÓN DE SELECCIÓN Y MOVIMIENTO EN EL LIENZO ---
+        canvas.addEventListener('mousedown', (e) => {
+            const rect = canvas.getBoundingClientRect();
+            const mouseX = e.clientX - rect.left;
+            const mouseY = e.clientY - rect.top;
+
+            // Buscar si se hizo clic encima de un elemento
+            const encontrado = elementosCanvas.slice().reverse().find(el => 
+                mouseX >= el.x && mouseX <= el.x + el.w && mouseY >= el.y && mouseY <= el.y + el.h
+            );
+
+            if (encontrado) {
+                seleccionarElemento(encontrado);
+                isDraggingCanvasItem = true;
+                offsetDragX = mouseX - encontrado.x;
+                offsetDragY = mouseY - encontrado.y;
+            } else {
+                seleccionarElemento(null);
+            }
+            drawGrid();
+        });
+
+        canvas.addEventListener('mousemove', (e) => {
+            if (!isDraggingCanvasItem || !elementoSeleccionado) return;
+
+            const rect = canvas.getBoundingClientRect();
+            const mouseX = e.clientX - rect.left;
+            const mouseY = e.clientY - rect.top;
+
+            // Mover ajustando a la cuadrícula
+            elementoSeleccionado.x = Math.round((mouseX - offsetDragX) / GRID_SIZE) * GRID_SIZE;
+            elementoSeleccionado.y = Math.round((mouseY - offsetDragY) / GRID_SIZE) * GRID_SIZE;
+
+            drawGrid();
+        });
+
+        window.addEventListener('mouseup', () => {
+            isDraggingCanvasItem = false;
+        });
+
+        // --- PANEL DE PROPIEDADES Y CÁLCULOS ELÉCTRICOS ---
+        function seleccionarElemento(el) {
+            elementoSeleccionado = el;
+            if (!el) {
+                propertiesPanel.innerHTML = `<p style="color: #888; text-align: center;">Selecciona un elemento en el plano</p>`;
+                return;
+            }
+
+            // Cálculo instantáneo de corriente (Amperios: I = P / V)
+            const corriente = el.volt > 0 ? (el.power / el.volt).toFixed(2) : 0;
+
+            propertiesPanel.innerHTML = `
+                <label>Nombre:</label>
+                <input type="text" id="propName" value="${el.name}">
+                
+                <label>Potencia (Watts):</label>
+                <input type="number" id="propPower" value="${el.power}">
+                
+                <label>Voltaje (Volts):</label>
+                <select id="propVolt">
+                    <option value="120" ${el.volt === 120 ? 'selected' : ''}>120V (Monofásico)</option>
+                    <option value="220" ${el.volt === 220 ? 'selected' : ''}>220V (Bifásico)</option>
+                </select>
+
+                <div style="margin-top: 5px; padding-top: 5px; border-top: 1px dashed #444; font-size:0.85rem; color: #4fc3f7;">
+                    <strong>Corriente calculada:</strong> <span id="calcAmps">${corriente}</span> A
+                </div>
+            `;
+
+            // Escuchar cambios en los inputs para actualizar en tiempo real
+            document.getElementById('propName').addEventListener('input', (e) => {
+                el.name = e.target.value;
+                drawGrid();
+            });
+            document.getElementById('propPower').addEventListener('input', (e) => {
+                el.power = parseFloat(e.target.value) || 0;
+                actualizarCalculos(el);
+            });
+            document.getElementById('propVolt').addEventListener('change', (e) => {
+                el.volt = parseFloat(e.target.value);
+                actualizarCalculos(el);
+            });
+        }
+
+        function actualizarCalculos(el) {
+            const corriente = el.volt > 0 ? (el.power / el.volt).toFixed(2) : 0;
+            const ampsSpan = document.getElementById('calcAmps');
+            if (ampsSpan) ampsSpan.innerText = corriente;
+            drawGrid();
+        }
+
+        // Inicializar canvas al cargar
+        resizeCanvas();
+    </script>
+</body>
+</html>
